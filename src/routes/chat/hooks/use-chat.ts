@@ -6,7 +6,8 @@ import {
 	type BlueprintType,
 	type WebSocketMessage,
 	type CodeFixEdits,
-	type ImageAttachment
+	type ImageAttachment,
+	type DocumentAttachment
 } from '@/api-types';
 import {
 	createRepairingJSONParser,
@@ -52,6 +53,7 @@ export function useChat({
 	chatId: urlChatId,
 	query: userQuery,
 	images: userImages,
+	documents: userDocuments,
 	agentMode = 'deterministic',
 	onDebugMessage,
 	onTerminalMessage,
@@ -59,6 +61,7 @@ export function useChat({
 	chatId?: string;
 	query: string | null;
 	images?: ImageAttachment[];
+	documents?: DocumentAttachment[];
 	agentMode?: 'deterministic' | 'smart';
 	onDebugMessage?: (type: 'error' | 'warning' | 'info' | 'websocket', message: string, details?: string, source?: string, messageType?: string, rawMessage?: unknown) => void;
 	onTerminalMessage?: (log: { id: string; content: string; type: 'command' | 'stdout' | 'stderr' | 'info' | 'error' | 'warn' | 'debug'; timestamp: number; source?: string }) => void;
@@ -407,6 +410,7 @@ export function useChat({
 						query: userQuery,
 						agentMode,
 						images: userImages, // Pass images from URL params for multi-modal blueprint
+						documents: userDocuments, // Pass documents from URL params for context
 					});
 
 					const parser = createRepairingJSONParser();

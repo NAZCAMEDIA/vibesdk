@@ -34,8 +34,10 @@ import { GitCloneModal } from '@/components/shared/GitCloneModal';
 import { ModelConfigInfo } from './components/model-config-info';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useImageUpload } from '@/hooks/use-image-upload';
+import { useDocumentUpload } from '@/hooks/use-document-upload';
 import { useDragDrop } from '@/hooks/use-drag-drop';
 import { ImageAttachmentPreview } from '@/components/image-attachment-preview';
+import { DocumentAttachmentPreview } from '@/components/document-attachment-preview';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -56,6 +58,18 @@ export default function Chat() {
 			return JSON.parse(decodeURIComponent(imagesParam));
 		} catch (error) {
 			console.error('Failed to parse images from URL:', error);
+			return undefined;
+		}
+	}, [searchParams]);
+
+	// Extract documents from URL params if present
+	const userDocuments = useMemo(() => {
+		const documentsParam = searchParams.get('documents');
+		if (!documentsParam) return undefined;
+		try {
+			return JSON.parse(decodeURIComponent(documentsParam));
+		} catch (error) {
+			console.error('Failed to parse documents from URL:', error);
 			return undefined;
 		}
 	}, [searchParams]);
@@ -140,6 +154,7 @@ export default function Chat() {
 		chatId: urlChatId,
 		query: userQuery,
 		images: userImages,
+		documents: userDocuments,
 		agentMode: agentMode as 'deterministic' | 'smart',
 		onDebugMessage: addDebugMessage,
 	});

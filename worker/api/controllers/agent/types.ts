@@ -1,5 +1,6 @@
 import { PreviewType } from "../../../services/sandbox/sandboxTypes";
 import type { ImageAttachment } from '../../../types/image-attachment';
+import type { DocumentAttachment } from '../../../types/document-attachment';
 
 export interface CodeGenArgs {
     query: string;
@@ -8,6 +9,7 @@ export interface CodeGenArgs {
     selectedTemplate?: string;
     agentMode: 'deterministic' | 'smart';
     images?: ImageAttachment[];
+    documents?: DocumentAttachment[];
 }
 
 /**

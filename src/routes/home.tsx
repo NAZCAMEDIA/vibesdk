@@ -12,9 +12,12 @@ import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { AppCard } from '@/components/shared/AppCard';
 import clsx from 'clsx';
 import { useImageUpload } from '@/hooks/use-image-upload';
+import { useDocumentUpload } from '@/hooks/use-document-upload';
 import { useDragDrop } from '@/hooks/use-drag-drop';
 import { ImageUploadButton } from '@/components/image-upload-button';
+import { DocumentUploadButton } from '@/components/document-upload-button';
 import { ImageAttachmentPreview } from '@/components/image-attachment-preview';
+import { DocumentAttachmentPreview } from '@/components/document-attachment-preview';
 import { SUPPORTED_IMAGE_MIME_TYPES } from '@/api-types';
 
 export default function Home() {
@@ -25,12 +28,19 @@ export default function Home() {
 	const [query, setQuery] = useState('');
 	const { user } = useAuth();
 
-	const { images, addImages, removeImage, clearImages, isProcessing } = useImageUpload({
+	const { images, addImages, removeImage, clearImages, isProcessing: isImageProcessing } = useImageUpload({
 		onError: (error) => {
-			// TODO: Show error toast/notification
 			console.error('Image upload error:', error);
 		},
 	});
+
+	const { documents, addDocuments, removeDocument, clearDocuments, isProcessing: isDocProcessing } = useDocumentUpload({
+		onError: (error) => {
+			console.error('Document upload error:', error);
+		},
+	});
+
+	const isProcessing = isImageProcessing || isDocProcessing;
 
 	const { isDragging, dragHandlers } = useDragDrop({
 		onFilesDropped: addImages,
@@ -63,10 +73,11 @@ export default function Home() {
 	const handleCreateApp = (query: string, mode: AgentMode) => {
 		const encodedQuery = encodeURIComponent(query);
 		const encodedMode = encodeURIComponent(mode);
-		
-		// Encode images as JSON if present
+
+		// Encode images and documents as JSON if present
 		const imageParam = images.length > 0 ? `&images=${encodeURIComponent(JSON.stringify(images))}` : '';
-		const intendedUrl = `/chat/new?query=${encodedQuery}&agentMode=${encodedMode}${imageParam}`;
+		const docParam = documents.length > 0 ? `&documents=${encodeURIComponent(JSON.stringify(documents))}` : '';
+		const intendedUrl = `/chat/new?query=${encodedQuery}&agentMode=${encodedMode}${imageParam}${docParam}`;
 
 		if (
 			!requireAuth({
@@ -80,8 +91,9 @@ export default function Home() {
 
 		// User is already authenticated, navigate immediately
 		navigate(intendedUrl);
-		// Clear images after navigation
+		// Clear attachments after navigation
 		clearImages();
+		clearDocuments();
 	};
 
 	// Auto-resize textarea based on content
@@ -222,6 +234,14 @@ export default function Home() {
 										/>
 									</div>
 								)}
+								{documents.length > 0 && (
+									<div className="mt-3">
+										<DocumentAttachmentPreview
+											documents={documents}
+											onRemove={removeDocument}
+										/>
+									</div>
+								)}
 							</div>
 							<div className="flex items-center justify-between mt-4 pt-1">
 								{import.meta.env.VITE_AGENT_MODE_ENABLED ? (
@@ -235,6 +255,10 @@ export default function Home() {
 								)}
 
 								<div className="flex items-center justify-end ml-4 gap-2">
+								<DocumentUploadButton
+									onFilesSelected={addDocuments}
+									disabled={isProcessing}
+								/>
 								<ImageUploadButton
 									onFilesSelected={addImages}
 									disabled={isProcessing}
@@ -254,7 +278,7 @@ export default function Home() {
 				</div>
 
 				<AnimatePresence>
-					{images.length > 0 && (
+					{(images.length > 0 || documents.length > 0) && (
 						<motion.div
 							initial={{ opacity: 0, y: -10 }}
 							animate={{ opacity: 1, y: 0 }}
@@ -264,7 +288,12 @@ export default function Home() {
 							<div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-bg-4/50 dark:bg-bg-2/50 border border-accent/20 dark:border-accent/30 shadow-sm">
 								<Info className="size-4 text-accent flex-shrink-0 mt-0.5" />
 								<p className="text-xs text-text-tertiary leading-relaxed">
-									<span className="font-medium text-text-secondary">Images Beta:</span> Images guide app layout and design but may not be replicated exactly. The coding agent cannot access images directly for app assets.
+									{images.length > 0 && (
+										<><span className="font-medium text-text-secondary">Images:</span> Guide app layout and design but may not be replicated exactly. </>
+									)}
+									{documents.length > 0 && (
+										<><span className="font-medium text-text-secondary">Documents:</span> Will be used as context and reference for code generation.</>
+									)}
 								</p>
 							</div>
 						</motion.div>
@@ -280,7 +309,7 @@ export default function Home() {
 							animate={{ opacity: 1, height: "auto" }}
 							exit={{ opacity: 0, height: 0 }}
 							transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-							className={clsx('max-w-6xl mx-auto px-4 z-10', images.length > 0 ? 'mt-10' : 'mt-16 mb-8')}
+							className={clsx('max-w-6xl mx-auto px-4 z-10', (images.length > 0 || documents.length > 0) ? 'mt-10' : 'mt-16 mb-8')}
 						>
 							<div className='flex flex-col items-start'>
 								<h2 className="text-2xl font-medium text-text-secondary/80">Discover Apps built by the community</h2>
