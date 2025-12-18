@@ -1,3 +1,38 @@
+// SOLARIA Agency Logo - Orange brand color #f6921d
+export function SolariaLogo(props: React.SVGProps<SVGSVGElement>) {
+	return (
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 100 100"
+			fill="none"
+			{...props}
+		>
+			{/* Outer circle */}
+			<circle
+				cx="50"
+				cy="50"
+				r="45"
+				stroke="currentColor"
+				strokeWidth="6"
+				fill="none"
+			/>
+			{/* Inner stylized S */}
+			<path
+				d="M35 35 C35 25, 65 25, 65 35 C65 45, 35 45, 35 55 C35 65, 65 65, 65 55 L65 75"
+				stroke="currentColor"
+				strokeWidth="8"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				fill="none"
+			/>
+			{/* Sun rays emanating from top */}
+			<circle cx="50" cy="15" r="4" fill="currentColor" />
+			<circle cx="30" cy="22" r="3" fill="currentColor" />
+			<circle cx="70" cy="22" r="3" fill="currentColor" />
+		</svg>
+	);
+}
+
 export function CloudflareLogo(props: React.SVGProps<SVGSVGElement> & { color1?: string, color2?: string}) {
 	return (
 		<svg
