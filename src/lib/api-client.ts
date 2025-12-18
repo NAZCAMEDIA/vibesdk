@@ -56,7 +56,17 @@ import type{
     CodeGenArgs,
     AgentPreviewResponse,
     PlatformStatusData,
-    RateLimitError
+    RateLimitError,
+	// Projects API Types
+	ProjectsListData,
+	ProjectData,
+	ProjectAppsData,
+	ProjectMessageData,
+	// MCP Servers API Types
+	MCPServersListData,
+	MCPServerData,
+	MCPServerMessageData,
+	MCPServerTestData,
 } from '@/api-types';
 import {
     
@@ -1188,6 +1198,184 @@ class ApiClient {
 
 		// Redirect to OAuth provider
 		window.location.href = oauthUrl.toString();
+	}
+
+	// ===============================
+	// Projects API Methods
+	// ===============================
+
+	/**
+	 * Get all user projects
+	 */
+	async getProjects(): Promise<ApiResponse<ProjectsListData>> {
+		return this.request<ProjectsListData>('/api/projects');
+	}
+
+	/**
+	 * Get single project by ID
+	 */
+	async getProject(projectId: string): Promise<ApiResponse<ProjectData>> {
+		return this.request<ProjectData>(`/api/projects/${projectId}`);
+	}
+
+	/**
+	 * Create a new project
+	 */
+	async createProject(data: {
+		name: string;
+		description?: string;
+	}): Promise<ApiResponse<ProjectData>> {
+		return this.request<ProjectData>('/api/projects', {
+			method: 'POST',
+			body: data,
+		});
+	}
+
+	/**
+	 * Update a project
+	 */
+	async updateProject(
+		projectId: string,
+		data: {
+			name?: string;
+			description?: string;
+			status?: 'active' | 'archived' | 'draft';
+		}
+	): Promise<ApiResponse<ProjectData>> {
+		return this.request<ProjectData>(`/api/projects/${projectId}`, {
+			method: 'PUT',
+			body: data,
+		});
+	}
+
+	/**
+	 * Delete a project
+	 */
+	async deleteProject(projectId: string): Promise<ApiResponse<ProjectMessageData>> {
+		return this.request<ProjectMessageData>(`/api/projects/${projectId}`, {
+			method: 'DELETE',
+		});
+	}
+
+	/**
+	 * Get apps in a project
+	 */
+	async getProjectApps(projectId: string): Promise<ApiResponse<ProjectAppsData>> {
+		return this.request<ProjectAppsData>(`/api/projects/${projectId}/apps`);
+	}
+
+	/**
+	 * Add an app to a project
+	 */
+	async addAppToProject(
+		projectId: string,
+		appId: string
+	): Promise<ApiResponse<ProjectMessageData>> {
+		return this.request<ProjectMessageData>(
+			`/api/projects/${projectId}/apps/${appId}`,
+			{
+				method: 'POST',
+			}
+		);
+	}
+
+	/**
+	 * Remove an app from a project
+	 */
+	async removeAppFromProject(
+		projectId: string,
+		appId: string
+	): Promise<ApiResponse<ProjectMessageData>> {
+		return this.request<ProjectMessageData>(
+			`/api/projects/${projectId}/apps/${appId}`,
+			{
+				method: 'DELETE',
+			}
+		);
+	}
+
+	// ===============================
+	// MCP Servers API Methods
+	// ===============================
+
+	/**
+	 * Get all user MCP servers
+	 */
+	async getMCPServers(): Promise<ApiResponse<MCPServersListData>> {
+		return this.request<MCPServersListData>('/api/mcp');
+	}
+
+	/**
+	 * Get single MCP server by ID
+	 */
+	async getMCPServer(serverId: string): Promise<ApiResponse<MCPServerData>> {
+		return this.request<MCPServerData>(`/api/mcp/${serverId}`);
+	}
+
+	/**
+	 * Create a new MCP server
+	 */
+	async createMCPServer(data: {
+		name: string;
+		url: string;
+		transport?: 'http' | 'sse' | 'stdio';
+		authType?: 'none' | 'bearer' | 'api-key';
+		authSecretId?: string;
+		description?: string;
+		enabled?: boolean;
+	}): Promise<ApiResponse<MCPServerData>> {
+		return this.request<MCPServerData>('/api/mcp', {
+			method: 'POST',
+			body: data,
+		});
+	}
+
+	/**
+	 * Update an MCP server
+	 */
+	async updateMCPServer(
+		serverId: string,
+		data: {
+			name?: string;
+			url?: string;
+			transport?: 'http' | 'sse' | 'stdio';
+			authType?: 'none' | 'bearer' | 'api-key';
+			authSecretId?: string | null;
+			description?: string | null;
+			enabled?: boolean;
+		}
+	): Promise<ApiResponse<MCPServerData>> {
+		return this.request<MCPServerData>(`/api/mcp/${serverId}`, {
+			method: 'PUT',
+			body: data,
+		});
+	}
+
+	/**
+	 * Delete an MCP server
+	 */
+	async deleteMCPServer(serverId: string): Promise<ApiResponse<MCPServerMessageData>> {
+		return this.request<MCPServerMessageData>(`/api/mcp/${serverId}`, {
+			method: 'DELETE',
+		});
+	}
+
+	/**
+	 * Toggle MCP server enabled status
+	 */
+	async toggleMCPServer(serverId: string): Promise<ApiResponse<MCPServerData>> {
+		return this.request<MCPServerData>(`/api/mcp/${serverId}/toggle`, {
+			method: 'PATCH',
+		});
+	}
+
+	/**
+	 * Test MCP server connection
+	 */
+	async testMCPServer(serverId: string): Promise<ApiResponse<MCPServerTestData>> {
+		return this.request<MCPServerTestData>(`/api/mcp/${serverId}/test`, {
+			method: 'POST',
+		});
 	}
 }
 

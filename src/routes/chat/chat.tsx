@@ -34,14 +34,13 @@ import { GitCloneModal } from '@/components/shared/GitCloneModal';
 import { ModelConfigInfo } from './components/model-config-info';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
 import { useImageUpload } from '@/hooks/use-image-upload';
-import { useDocumentUpload } from '@/hooks/use-document-upload';
 import { useDragDrop } from '@/hooks/use-drag-drop';
 import { ImageAttachmentPreview } from '@/components/image-attachment-preview';
-import { DocumentAttachmentPreview } from '@/components/document-attachment-preview';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { sendWebSocketMessage } from './utils/websocket-helpers';
+import { ChatModelSelector } from '@/components/chat-model-selector';
 
 export default function Chat() {
 	const { chatId: urlChatId } = useParams();
@@ -742,7 +741,11 @@ export default function Chat() {
 								/>
 							</div>
 						)}
-						<textarea
+						{/* Model selector and input row */}
+						<div className="flex items-end gap-2">
+							<ChatModelSelector disabled={isChatDisabled} />
+							<div className="relative flex-1">
+								<textarea
 							value={newMessage}
 							onChange={(e) => {
 								const newValue = e.target.value;
@@ -828,6 +831,8 @@ export default function Chat() {
 									<ArrowRight className="size-4" />
 								</button>
 							</div>
+							</div>
+						</div>
 						</div>
 					</form>
 				</motion.div>

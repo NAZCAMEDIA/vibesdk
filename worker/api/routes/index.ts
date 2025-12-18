@@ -10,6 +10,8 @@ import { setupGitHubExporterRoutes } from './githubExporterRoutes';
 import { setupCodegenRoutes } from './codegenRoutes';
 import { setupScreenshotRoutes } from './imagesRoutes';
 import { setupSentryRoutes } from './sentryRoutes';
+import { setupProjectsRoutes } from './projectsRoutes';
+import { setupMCPRoutes } from './mcpRoutes';
 import { Hono } from "hono";
 import { AppEnv } from "../../types/appenv";
 import { setupStatusRoutes } from './statusRoutes';
@@ -58,4 +60,10 @@ export function setupRoutes(app: Hono<AppEnv>): void {
 
     // Screenshot serving routes (public)
     setupScreenshotRoutes(app);
+
+    // Projects management routes
+    setupProjectsRoutes(app);
+
+    // MCP server configuration routes
+    setupMCPRoutes(app);
 }

@@ -286,3 +286,27 @@ export type {
     GitHubExportOptions,
     GitHubExportResult,
 } from 'worker/services/github/types';
+
+// Projects API Types
+export type {
+    ProjectsListData,
+    ProjectData,
+    ProjectAppsData,
+    ProjectMessageData,
+} from 'worker/api/controllers/projects/types';
+
+export type { ProjectWithAppCount } from 'worker/database/services/ProjectsService';
+
+// MCP Servers API Types
+export type {
+    MCPServersListData,
+    MCPServerData,
+    MCPServerMessageData,
+    MCPServerTestData,
+} from 'worker/api/controllers/mcp/types';
+
+// Database types for Projects and MCP
+export type {
+    Project,
+    MCPServer,
+} from 'worker/database/schema';

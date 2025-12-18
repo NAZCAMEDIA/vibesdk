@@ -47,6 +47,8 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { formatDistanceToNow } from 'date-fns';
+import { apiClient } from '@/lib/api-client';
+import type { ProjectWithAppCount } from '@/api-types';
 
 interface Project {
   id: string;
@@ -57,37 +59,6 @@ interface Project {
   updatedAt: Date;
   appCount: number;
 }
-
-// Mock data - will be replaced with API calls
-const MOCK_PROJECTS: Project[] = [
-  {
-    id: '1',
-    name: 'E-commerce Platform',
-    description: 'Full-stack e-commerce solution with payment integration',
-    status: 'active',
-    createdAt: new Date('2025-01-10'),
-    updatedAt: new Date('2025-01-15'),
-    appCount: 3,
-  },
-  {
-    id: '2',
-    name: 'Dashboard Analytics',
-    description: 'Real-time analytics dashboard for business metrics',
-    status: 'active',
-    createdAt: new Date('2025-01-05'),
-    updatedAt: new Date('2025-01-12'),
-    appCount: 2,
-  },
-  {
-    id: '3',
-    name: 'Landing Page Builder',
-    description: 'Drag and drop landing page creator',
-    status: 'draft',
-    createdAt: new Date('2025-01-01'),
-    updatedAt: new Date('2025-01-01'),
-    appCount: 0,
-  },
-];
 
 export default function ProjectsPage() {
   const { user } = useAuth();
@@ -108,14 +79,34 @@ export default function ProjectsPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Helper to convert API project to local format
+  const mapApiProject = (p: ProjectWithAppCount): Project => ({
+    id: p.id,
+    name: p.name,
+    description: p.description || '',
+    status: (p.status as Project['status']) || 'draft',
+    createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+    updatedAt: p.updatedAt ? new Date(p.updatedAt) : new Date(),
+    appCount: p.appCount || 0,
+  });
+
+  // Helper to extract error message
+  const getErrorMessage = (error: unknown): string => {
+    if (typeof error === 'string') return error;
+    if (error && typeof error === 'object' && 'message' in error) {
+      return (error as { message: string }).message;
+    }
+    return 'An error occurred';
+  };
+
   // Load projects
   const loadProjects = useCallback(async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await apiClient.getProjects();
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
-      setProjects(MOCK_PROJECTS);
+      const response = await apiClient.getProjects();
+      if (response.success && response.data) {
+        setProjects(response.data.projects.map(mapApiProject));
+      }
     } catch (error) {
       console.error('Error loading projects:', error);
       toast.error('Failed to load projects');
@@ -145,21 +136,20 @@ export default function ProjectsPage() {
 
     try {
       setIsSaving(true);
-      // TODO: Replace with actual API call
-      const newProject: Project = {
-        id: Date.now().toString(),
-        name: formData.name,
-        description: formData.description,
-        status: 'draft',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        appCount: 0,
-      };
+      const response = await apiClient.createProject({
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+      });
 
-      setProjects(prev => [newProject, ...prev]);
-      setIsCreateDialogOpen(false);
-      setFormData({ name: '', description: '' });
-      toast.success('Project created successfully');
+      if (response.success && response.data) {
+        const newProject = mapApiProject(response.data.project as ProjectWithAppCount);
+        setProjects(prev => [newProject, ...prev]);
+        setIsCreateDialogOpen(false);
+        setFormData({ name: '', description: '' });
+        toast.success('Project created successfully');
+      } else {
+        toast.error(getErrorMessage(response.error) || 'Failed to create project');
+      }
     } catch (error) {
       console.error('Error creating project:', error);
       toast.error('Failed to create project');
@@ -177,17 +167,23 @@ export default function ProjectsPage() {
 
     try {
       setIsSaving(true);
-      // TODO: Replace with actual API call
-      setProjects(prev => prev.map(p =>
-        p.id === selectedProject.id
-          ? { ...p, name: formData.name, description: formData.description, updatedAt: new Date() }
-          : p
-      ));
+      const response = await apiClient.updateProject(selectedProject.id, {
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+      });
 
-      setIsEditDialogOpen(false);
-      setSelectedProject(null);
-      setFormData({ name: '', description: '' });
-      toast.success('Project updated successfully');
+      if (response.success && response.data) {
+        const updatedProject = mapApiProject(response.data.project as ProjectWithAppCount);
+        setProjects(prev => prev.map(p =>
+          p.id === selectedProject.id ? updatedProject : p
+        ));
+        setIsEditDialogOpen(false);
+        setSelectedProject(null);
+        setFormData({ name: '', description: '' });
+        toast.success('Project updated successfully');
+      } else {
+        toast.error(getErrorMessage(response.error) || 'Failed to update project');
+      }
     } catch (error) {
       console.error('Error updating project:', error);
       toast.error('Failed to update project');
@@ -201,11 +197,15 @@ export default function ProjectsPage() {
     if (!selectedProject) return;
 
     try {
-      // TODO: Replace with actual API call
-      setProjects(prev => prev.filter(p => p.id !== selectedProject.id));
-      setIsDeleteDialogOpen(false);
-      setSelectedProject(null);
-      toast.success('Project deleted successfully');
+      const response = await apiClient.deleteProject(selectedProject.id);
+      if (response.success) {
+        setProjects(prev => prev.filter(p => p.id !== selectedProject.id));
+        setIsDeleteDialogOpen(false);
+        setSelectedProject(null);
+        toast.success('Project deleted successfully');
+      } else {
+        toast.error(getErrorMessage(response.error) || 'Failed to delete project');
+      }
     } catch (error) {
       console.error('Error deleting project:', error);
       toast.error('Failed to delete project');

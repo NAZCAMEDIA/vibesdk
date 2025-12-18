@@ -557,6 +557,77 @@ export const systemSettings = sqliteTable('system_settings', {
 }));
 
 // ========================================
+// PROJECTS AND MCP SERVERS
+// ========================================
+
+/**
+ * Projects table - Organize apps into projects
+ */
+export const projects = sqliteTable('projects', {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+    // Project Details
+    name: text('name').notNull(),
+    description: text('description'),
+    status: text('status', { enum: ['active', 'archived', 'draft'] }).default('draft').notNull(),
+
+    // Metadata
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+    userIdx: index('projects_user_idx').on(table.userId),
+    statusIdx: index('projects_status_idx').on(table.status),
+    nameIdx: index('projects_name_idx').on(table.name),
+}));
+
+/**
+ * Project Apps junction table - Link apps to projects
+ */
+export const projectApps = sqliteTable('project_apps', {
+    id: text('id').primaryKey(),
+    projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+    appId: text('app_id').notNull().references(() => apps.id, { onDelete: 'cascade' }),
+    addedAt: integer('added_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+    projectAppIdx: uniqueIndex('project_apps_project_app_idx').on(table.projectId, table.appId),
+    projectIdx: index('project_apps_project_idx').on(table.projectId),
+    appIdx: index('project_apps_app_idx').on(table.appId),
+}));
+
+/**
+ * MCP Servers table - Store user's MCP server configurations
+ */
+export const mcpServers = sqliteTable('mcp_servers', {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+
+    // Server Configuration
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    transport: text('transport', { enum: ['http', 'sse', 'stdio'] }).default('http').notNull(),
+
+    // Authentication
+    authType: text('auth_type', { enum: ['none', 'bearer', 'api-key'] }).default('none').notNull(),
+    authSecretId: text('auth_secret_id').references(() => userSecrets.id, { onDelete: 'set null' }),
+
+    // Server State
+    enabled: integer('enabled', { mode: 'boolean' }).default(true),
+    status: text('status', { enum: ['connected', 'disconnected', 'error', 'unknown'] }).default('unknown').notNull(),
+    lastChecked: integer('last_checked', { mode: 'timestamp' }),
+    lastError: text('last_error'),
+
+    // Metadata
+    description: text('description'),
+    createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+}, (table) => ({
+    userIdx: index('mcp_servers_user_idx').on(table.userId),
+    enabledIdx: index('mcp_servers_enabled_idx').on(table.enabled),
+    statusIdx: index('mcp_servers_status_idx').on(table.status),
+}));
+
+// ========================================
 // TYPE EXPORTS FOR APPLICATION USE
 // ========================================
 
@@ -615,3 +686,12 @@ export type NewUserModelProvider = typeof userModelProviders.$inferInsert;
 
 export type Star = typeof stars.$inferSelect;
 export type NewStar = typeof stars.$inferInsert;
+
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;
+
+export type ProjectApp = typeof projectApps.$inferSelect;
+export type NewProjectApp = typeof projectApps.$inferInsert;
+
+export type MCPServer = typeof mcpServers.$inferSelect;
+export type NewMCPServer = typeof mcpServers.$inferInsert;

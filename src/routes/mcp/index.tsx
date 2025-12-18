@@ -58,6 +58,8 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
+import { apiClient } from '@/lib/api-client';
+import type { MCPServer as APIMCPServer } from '@/api-types';
 
 interface MCPServer {
   id: string;
@@ -72,32 +74,6 @@ interface MCPServer {
   lastChecked?: Date;
   description?: string;
 }
-
-// Mock data - will be replaced with API calls
-const MOCK_SERVERS: MCPServer[] = [
-  {
-    id: '1',
-    name: 'SOLARIA DFO',
-    url: 'https://dfo.solaria.agency/mcp',
-    transport: 'http',
-    authType: 'bearer',
-    authToken: '•••••••••',
-    enabled: true,
-    status: 'connected',
-    lastChecked: new Date(),
-    description: 'SOLARIA Digital Field Operations - Project management and tracking',
-  },
-  {
-    id: '2',
-    name: 'Local Development',
-    url: 'http://localhost:3031/mcp',
-    transport: 'http',
-    authType: 'none',
-    enabled: false,
-    status: 'disconnected',
-    description: 'Local MCP server for development',
-  },
-];
 
 export default function MCPConfigPage() {
   const { user } = useAuth();
@@ -123,13 +99,36 @@ export default function MCPConfigPage() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // Helper to convert API server to local format
+  const mapApiServer = (s: APIMCPServer): MCPServer => ({
+    id: s.id,
+    name: s.name,
+    url: s.url,
+    transport: (s.transport as MCPServer['transport']) || 'http',
+    authType: (s.authType as MCPServer['authType']) || 'none',
+    enabled: s.enabled ?? true,
+    status: (s.status as MCPServer['status']) || 'unknown',
+    lastChecked: s.lastChecked ? new Date(s.lastChecked) : undefined,
+    description: s.description || undefined,
+  });
+
+  // Helper to extract error message
+  const getErrorMessage = (error: unknown): string => {
+    if (typeof error === 'string') return error;
+    if (error && typeof error === 'object' && 'message' in error) {
+      return (error as { message: string }).message;
+    }
+    return 'An error occurred';
+  };
+
   // Load servers
   const loadServers = useCallback(async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setServers(MOCK_SERVERS);
+      const response = await apiClient.getMCPServers();
+      if (response.success && response.data) {
+        setServers(response.data.servers.map(mapApiServer));
+      }
     } catch (error) {
       console.error('Error loading MCP servers:', error);
       toast.error('Failed to load MCP servers');
@@ -166,23 +165,24 @@ export default function MCPConfigPage() {
 
     try {
       setIsSaving(true);
-      // TODO: Replace with actual API call
-      const newServer: MCPServer = {
-        id: Date.now().toString(),
-        name: formData.name,
-        url: formData.url,
+      const response = await apiClient.createMCPServer({
+        name: formData.name.trim(),
+        url: formData.url.trim(),
         transport: formData.transport,
         authType: formData.authType,
-        authToken: formData.authToken || undefined,
+        description: formData.description.trim() || undefined,
         enabled: formData.enabled,
-        status: 'unknown',
-        description: formData.description || undefined,
-      };
+      });
 
-      setServers(prev => [...prev, newServer]);
-      setIsAddDialogOpen(false);
-      resetForm();
-      toast.success('MCP server added successfully');
+      if (response.success && response.data) {
+        const newServer = mapApiServer(response.data.server);
+        setServers(prev => [...prev, newServer]);
+        setIsAddDialogOpen(false);
+        resetForm();
+        toast.success('MCP server added successfully');
+      } else {
+        toast.error(getErrorMessage(response.error) || 'Failed to add server');
+      }
     } catch (error) {
       console.error('Error adding server:', error);
       toast.error('Failed to add server');
@@ -200,26 +200,27 @@ export default function MCPConfigPage() {
 
     try {
       setIsSaving(true);
-      // TODO: Replace with actual API call
-      setServers(prev => prev.map(s =>
-        s.id === selectedServer.id
-          ? {
-              ...s,
-              name: formData.name,
-              url: formData.url,
-              transport: formData.transport,
-              authType: formData.authType,
-              authToken: formData.authToken || undefined,
-              description: formData.description || undefined,
-              enabled: formData.enabled,
-            }
-          : s
-      ));
+      const response = await apiClient.updateMCPServer(selectedServer.id, {
+        name: formData.name.trim(),
+        url: formData.url.trim(),
+        transport: formData.transport,
+        authType: formData.authType,
+        description: formData.description.trim() || undefined,
+        enabled: formData.enabled,
+      });
 
-      setIsEditDialogOpen(false);
-      setSelectedServer(null);
-      resetForm();
-      toast.success('MCP server updated successfully');
+      if (response.success && response.data) {
+        const updatedServer = mapApiServer(response.data.server);
+        setServers(prev => prev.map(s =>
+          s.id === selectedServer.id ? updatedServer : s
+        ));
+        setIsEditDialogOpen(false);
+        setSelectedServer(null);
+        resetForm();
+        toast.success('MCP server updated successfully');
+      } else {
+        toast.error(getErrorMessage(response.error) || 'Failed to update server');
+      }
     } catch (error) {
       console.error('Error updating server:', error);
       toast.error('Failed to update server');
@@ -233,11 +234,15 @@ export default function MCPConfigPage() {
     if (!selectedServer) return;
 
     try {
-      // TODO: Replace with actual API call
-      setServers(prev => prev.filter(s => s.id !== selectedServer.id));
-      setIsDeleteDialogOpen(false);
-      setSelectedServer(null);
-      toast.success('MCP server removed successfully');
+      const response = await apiClient.deleteMCPServer(selectedServer.id);
+      if (response.success) {
+        setServers(prev => prev.filter(s => s.id !== selectedServer.id));
+        setIsDeleteDialogOpen(false);
+        setSelectedServer(null);
+        toast.success('MCP server removed successfully');
+      } else {
+        toast.error(getErrorMessage(response.error) || 'Failed to remove server');
+      }
     } catch (error) {
       console.error('Error deleting server:', error);
       toast.error('Failed to remove server');
@@ -247,10 +252,16 @@ export default function MCPConfigPage() {
   // Toggle server enabled
   const handleToggleEnabled = async (server: MCPServer) => {
     try {
-      setServers(prev => prev.map(s =>
-        s.id === server.id ? { ...s, enabled: !s.enabled } : s
-      ));
-      toast.success(`Server ${server.enabled ? 'disabled' : 'enabled'}`);
+      const response = await apiClient.toggleMCPServer(server.id);
+      if (response.success && response.data) {
+        const updatedServer = mapApiServer(response.data.server);
+        setServers(prev => prev.map(s =>
+          s.id === server.id ? updatedServer : s
+        ));
+        toast.success(`Server ${updatedServer.enabled ? 'enabled' : 'disabled'}`);
+      } else {
+        toast.error(getErrorMessage(response.error) || 'Failed to update server');
+      }
     } catch (error) {
       console.error('Error toggling server:', error);
       toast.error('Failed to update server');
@@ -261,22 +272,23 @@ export default function MCPConfigPage() {
   const handleTestConnection = async (server: MCPServer) => {
     setTestingConnection(server.id);
     try {
-      // TODO: Replace with actual connection test
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await apiClient.testMCPServer(server.id);
 
-      // Simulate random success/failure for demo
-      const success = Math.random() > 0.3;
+      if (response.success && response.data) {
+        const { success, status, message } = response.data;
+        setServers(prev => prev.map(s =>
+          s.id === server.id
+            ? { ...s, status: status as MCPServer['status'], lastChecked: new Date() }
+            : s
+        ));
 
-      setServers(prev => prev.map(s =>
-        s.id === server.id
-          ? { ...s, status: success ? 'connected' : 'error', lastChecked: new Date() }
-          : s
-      ));
-
-      if (success) {
-        toast.success(`Connected to ${server.name}`);
+        if (success) {
+          toast.success(message || `Connected to ${server.name}`);
+        } else {
+          toast.error(message || `Failed to connect to ${server.name}`);
+        }
       } else {
-        toast.error(`Failed to connect to ${server.name}`);
+        toast.error(getErrorMessage(response.error) || 'Connection test failed');
       }
     } catch (error) {
       console.error('Error testing connection:', error);

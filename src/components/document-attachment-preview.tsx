@@ -1,4 +1,4 @@
-import { X, FileText, FileCode, FileJson, FileType2, File } from 'lucide-react';
+import { X, FileText, FileCode, FileJson, FileType2 } from 'lucide-react';
 import type { DocumentAttachment } from 'worker/types/document-attachment';
 import { motion, AnimatePresence } from 'framer-motion';
 
