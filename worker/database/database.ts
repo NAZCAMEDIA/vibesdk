@@ -1,6 +1,8 @@
+/// <reference types="@cloudflare/workers-types" />
+/// <reference path="../../worker-configuration.d.ts" />
 /**
  * Core Database Service
- * Provides database connection, core utilities, and base operations∂ƒ
+ * Provides database connection, core utilities, and base operations
  */
 
 import { drizzle } from 'drizzle-orm/d1';

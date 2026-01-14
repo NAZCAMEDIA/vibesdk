@@ -1,3 +1,5 @@
+/// <reference types="@cloudflare/workers-types" />
+/// <reference path="../../../worker-configuration.d.ts" />
 /**
  * Base Database Service Class
  * Provides common database functionality and patterns for all domain services

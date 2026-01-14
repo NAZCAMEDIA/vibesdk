@@ -51,9 +51,11 @@ const hasUserKeyForModel = (modelName: string, byokProviders: Array<{ provider: 
 export function ModelProvider({ children }: { children: React.ReactNode }) {
   const [selectedModel, setSelectedModelState] = useState<string>(() => {
     try {
-      return localStorage.getItem(STORAGE_KEY) || 'default';
+      const stored = localStorage.getItem(STORAGE_KEY);
+      // Don't use 'default' anymore - will be set to first available model
+      return stored && stored !== 'default' ? stored : '';
     } catch {
-      return 'default';
+      return '';
     }
   });
 
@@ -136,9 +138,15 @@ export function ModelProvider({ children }: { children: React.ReactNode }) {
     return models.sort((a, b) => a.label.localeCompare(b.label));
   }, [byokData]);
 
+  // Auto-select first available model if none selected
+  useEffect(() => {
+    if (!selectedModel && availableModels.length > 0) {
+      setSelectedModel(availableModels[0].value);
+    }
+  }, [selectedModel, availableModels, setSelectedModel]);
+
   // Get display name for a model
   const getModelDisplayName = useCallback((modelId: string): string => {
-    if (modelId === 'default') return 'Default';
     const model = availableModels.find(m => m.value === modelId);
     return model?.label || modelId;
   }, [availableModels]);

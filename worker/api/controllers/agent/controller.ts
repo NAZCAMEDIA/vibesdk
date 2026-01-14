@@ -10,6 +10,7 @@ import { ModelConfigService } from '../../../database';
 import { ModelConfig } from '../../../agents/inferutils/config.types';
 import { RateLimitService } from '../../../services/rate-limit/rateLimits';
 import { validateWebSocketOrigin } from '../../../middleware/security/websocket';
+import { getUserProviderStatus } from '../modelConfig/byokHelper';
 import { createLogger } from '../../../logger';
 import { getPreviewDomain } from 'worker/utils/urls';
 import { ImageType, uploadImage } from 'worker/utils/images';
@@ -64,8 +65,13 @@ export class CodingAgentController extends BaseController {
             const writer = writable.getWriter();
             // Check if user is authenticated (required for app creation)
             const user = context.user!;
+
+            // Check if user has BYOK keys for rate limit exclusion
+            const providerStatuses = await getUserProviderStatus(user.id, env);
+            const hasByokKeys = providerStatuses.some(p => p.hasValidKey);
+
             try {
-                await RateLimitService.enforceAppCreationRateLimit(env, context.config.security.rateLimit, user, request);
+                await RateLimitService.enforceAppCreationRateLimit(env, context.config.security.rateLimit, user, request, hasByokKeys);
             } catch (error) {
                 if (error instanceof Error) {
                     return CodingAgentController.createErrorResponse(error, 429);

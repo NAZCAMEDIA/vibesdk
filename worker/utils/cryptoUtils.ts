@@ -1,4 +1,10 @@
+/// <reference types="@cloudflare/workers-types" />
 // Crypto utilities for Cloudflare Workers
+
+// Type augmentation for Cloudflare's SubtleCrypto with timingSafeEqual
+interface CloudflareSubtleCrypto extends SubtleCrypto {
+    timingSafeEqual(a: ArrayBuffer | ArrayBufferView, b: ArrayBuffer | ArrayBufferView): boolean;
+}
 
 /**
  * Secure base64url encoding for Cloudflare Workers
@@ -38,20 +44,20 @@ export async function timingSafeEqual(a: string, b: string): Promise<boolean> {
     const encoder = new TextEncoder();
     const aBuffer = encoder.encode(a);
     const bBuffer = encoder.encode(b);
-    
+
     if (aBuffer.length !== bBuffer.length) {
         return false;
     }
-    
-    return crypto.subtle.timingSafeEqual(aBuffer, bBuffer);
+
+    return (crypto.subtle as CloudflareSubtleCrypto).timingSafeEqual(aBuffer, bBuffer);
 }
 
 export function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
     if (a.length !== b.length) {
         return false;
     }
-    
-    return crypto.subtle.timingSafeEqual(a, b);
+
+    return (crypto.subtle as CloudflareSubtleCrypto).timingSafeEqual(a, b);
 }
 
 export function generateSecureToken(length: number = 32): string {
@@ -101,7 +107,7 @@ export async function pbkdf2(
     const derivedBits = await crypto.subtle.deriveBits(
         {
             name: 'PBKDF2',
-            salt,
+            salt: salt.buffer as ArrayBuffer,
             iterations,
             hash: 'SHA-256'
         },

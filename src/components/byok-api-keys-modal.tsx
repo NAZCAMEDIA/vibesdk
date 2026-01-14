@@ -67,6 +67,21 @@ const PROVIDER_LOGOS: Record<string, React.ComponentType<{ className?: string }>
   cerebras: CerebrasLogo,
 };
 
+// Fallback emoji icons for providers without SVG logos
+const PROVIDER_EMOJI: Record<string, string> = {
+  groq: '⚡',
+  codeplan: '🔮',
+};
+
+// Get logo component with fallback
+function getProviderLogo(provider: string): React.ComponentType<{ className?: string }> {
+  if (PROVIDER_LOGOS[provider]) {
+    return PROVIDER_LOGOS[provider];
+  }
+  const emoji = PROVIDER_EMOJI[provider] || '🔑';
+  return ({ className }) => <span className={className}>{emoji}</span>;
+}
+
 interface BYOKProvider {
   id: string;
   name: string;
@@ -80,13 +95,11 @@ interface BYOKProvider {
  * Convert BYOK template to provider configuration
  */
 function templateToBYOKProvider(template: SecretTemplate): BYOKProvider {
-  const logo = PROVIDER_LOGOS[template.provider] || (() => <div className="w-4 h-4 bg-gray-300 rounded" />);
-  
   return {
     id: template.id,
     name: template.displayName.replace(' (BYOK)', ''),
     provider: template.provider,
-    logo,
+    logo: getProviderLogo(template.provider),
     placeholder: template.placeholder,
     validation: new RegExp(template.validation),
   };
@@ -165,10 +178,7 @@ export function ByokApiKeysModal({ isOpen, onClose, onKeyAdded }: ByokApiKeysMod
         );
         
         // Convert to ManagedSecret format with logos
-        const managedSecrets: ManagedSecret[] = byokSecrets.map(secret => {
-          const logo = PROVIDER_LOGOS[secret.provider] || (() => <div className="w-4 h-4 bg-gray-300 rounded" />);
-          
-          return {
+        const managedSecrets: ManagedSecret[] = byokSecrets.map(secret => ({
             id: secret.id,
             name: secret.name,
             provider: secret.provider,
@@ -176,9 +186,8 @@ export function ByokApiKeysModal({ isOpen, onClose, onKeyAdded }: ByokApiKeysMod
             isActive: secret.isActive ?? false,
             lastUsed: secret.lastUsed ? secret.lastUsed.toString() : null,
             createdAt: secret.createdAt?.toString() ?? '',
-            logo
-          };
-        });
+            logo: getProviderLogo(secret.provider)
+        }));
         
         setManagedSecrets(managedSecrets);
       } else {

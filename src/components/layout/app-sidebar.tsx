@@ -10,7 +10,6 @@ import {
 	Users2,
 	Bookmark,
 	// LayoutGrid,
-	Compass,
 	FolderKanban,
 	Server,
 } from 'lucide-react';
@@ -198,7 +197,8 @@ export function AppSidebar() {
 		);
 	};
 
-	if (!user) return;
+	// BYPASS: Temporarily show sidebar without auth
+	// if (!user) return;
 
 	return (
 		<>
@@ -209,6 +209,34 @@ export function AppSidebar() {
 				)}
 			>
 				<SidebarContent className="mt-2">
+					{/* Solaria Logo Header */}
+					<SidebarGroup>
+						<SidebarGroupContent>
+							<div
+								className={cn(
+									'flex items-center gap-3 px-2 py-3 mb-2',
+									isCollapsed ? 'justify-center' : 'justify-start',
+								)}
+							>
+								<img
+									src="/solaria-favicon.svg"
+									alt="Solaria"
+									className="h-8 w-8 flex-shrink-0"
+								/>
+								{!isCollapsed && (
+									<div className="flex flex-col">
+										<span className="text-sm font-bold text-[#f6921d]">
+											SOLARIA
+										</span>
+										<span className="text-[10px] text-text-tertiary uppercase tracking-wider">
+											Vibe Platform
+										</span>
+									</div>
+								)}
+							</div>
+						</SidebarGroupContent>
+					</SidebarGroup>
+
 					{/* Build Button */}
 					<SidebarGroup>
 						<SidebarGroupContent>
@@ -570,23 +598,9 @@ export function AppSidebar() {
 				</SidebarContent>
 
 				<SidebarFooter>
-					{user && (
+					{/* BYPASS: Show footer without auth */}
+					{(user || true) && (
 						<SidebarMenu>
-							<SidebarMenuItem>
-								<SidebarMenuButton
-									id="discover-link"
-									onClick={() => navigate('/discover')}
-									tooltip="Discover"
-									className="group hover:opacity-80 hover:cursor-pointer hover:bg-bg-1/50 transition-all duration-200"
-								>
-									<Compass className="h-6 w-6 text-text-primary/60 group-hover:text-primary/80 transition-colors" />
-									{!isCollapsed && (
-										<span className="text-text-primary/80 font-medium group-hover:text-primary transition-colors">
-											Discover
-										</span>
-									)}
-								</SidebarMenuButton>
-							</SidebarMenuItem>
 							<SidebarMenuItem>
 								<SidebarMenuButton
 									onClick={() => navigate('/projects')}

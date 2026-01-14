@@ -10,7 +10,11 @@ import { StructuredLogger } from "../../logger";
 import { IdGenerator } from '../utils/idGenerator';
 // import { MAX_LLM_MESSAGES } from '../constants';
 import { RateLimitExceededError, SecurityError } from 'shared/types/errors';
-import { buildTools } from "../tools/customTools";
+import { buildToolsWithMCP } from "../tools/customTools";
+import { MCPManager } from "../tools/mcpManager";
+import { DynamicMCPServerConfig } from "../tools/types";
+import { MCPServersService } from "../../database/services/MCPServersService";
+import { SecretsService } from "../../database/services/SecretsService";
 import { PROMPT_UTILS } from "../prompts";
 import { RuntimeError } from "worker/services/sandbox/sandboxTypes";
 import { CodeSerializerType } from "../utils/codeSerializers";
@@ -77,7 +81,7 @@ const RelevantProjectUpdateWebsoketMessages = [
 ] as const;
 export type ProjectUpdateType = typeof RelevantProjectUpdateWebsoketMessages[number];
 
-const SYSTEM_PROMPT = `You are Orange, the conversational AI interface for Cloudflare's vibe coding platform.
+const SYSTEM_PROMPT = `You are Vibe, the conversational AI interface for the vibe coding platform.
 
 ## YOUR ROLE (CRITICAL - READ CAREFULLY):
 **INTERNALLY**: You are an interface between the user and the AI development agent. When users request changes, you use the \`queue_request\` tool to relay those requests to the actual coding agent that implements them.
@@ -333,14 +337,103 @@ export class UserConversationProcessor extends AgentOperation<UserConversationIn
         return text.replace(/<system_context>[\s\S]*?<\/system_context>\n?/gi, '').trim();
     }
 
+    /**
+     * Load user's enabled MCP servers and convert to DynamicMCPServerConfig
+     */
+    private async loadUserMCPServers(
+        env: Env,
+        userId: string,
+        logger: StructuredLogger
+    ): Promise<DynamicMCPServerConfig[]> {
+        try {
+            const mcpService = new MCPServersService(env);
+            const secretsService = new SecretsService(env);
+
+            const enabledServers = await mcpService.getEnabledServers(userId);
+
+            if (enabledServers.length === 0) {
+                logger.info('No MCP servers configured for user', { userId });
+                return [];
+            }
+
+            logger.info('Loading MCP servers for user', {
+                userId,
+                serverCount: enabledServers.length
+            });
+
+            // Convert DB records to DynamicMCPServerConfig
+            const configs: DynamicMCPServerConfig[] = [];
+
+            for (const server of enabledServers) {
+                let authToken: string | undefined;
+
+                // Resolve auth token if needed
+                if (server.authType !== 'none' && server.authSecretId) {
+                    try {
+                        authToken = await secretsService.getSecretValue(userId, server.authSecretId);
+                    } catch (error) {
+                        logger.warn('Failed to decrypt MCP server auth token, skipping server', {
+                            serverId: server.id,
+                            serverName: server.name,
+                            error: String(error)
+                        });
+                        continue; // Skip this server if we can't get the auth token
+                    }
+                }
+
+                // Build config with proper discriminated union type
+                const baseConfig = {
+                    id: server.id,
+                    name: server.name,
+                    url: server.url,
+                    transport: server.transport as 'http' | 'sse' | 'stdio',
+                    enabled: true as const
+                };
+
+                if (server.authType === 'none') {
+                    configs.push({ ...baseConfig, authType: 'none' as const });
+                } else if (authToken) {
+                    configs.push({
+                        ...baseConfig,
+                        authType: server.authType as 'bearer' | 'api-key',
+                        authToken
+                    });
+                } else {
+                    // Skip servers that require auth but don't have a token
+                    logger.warn('Skipping MCP server without required auth token', {
+                        serverId: server.id,
+                        serverName: server.name
+                    });
+                    continue;
+                }
+            }
+
+            logger.info('MCP server configs prepared', {
+                userId,
+                configCount: configs.length
+            });
+
+            return configs;
+        } catch (error) {
+            logger.error('Failed to load user MCP servers', {
+                userId,
+                error: String(error)
+            });
+            return []; // Return empty array on error to allow conversation to proceed without MCP
+        }
+    }
+
     async execute(inputs: UserConversationInputs, options: OperationOptions): Promise<UserConversationOutputs> {
         const { env, logger, context, agent } = options;
         const { userMessage, conversationState, errors, images, projectUpdates } = inputs;
-        logger.info("Processing user message", { 
+        logger.info("Processing user message", {
             messageLength: inputs.userMessage.length,
             hasImages: !!images && images.length > 0,
             imageCount: images?.length || 0
         });
+
+        // Declare mcpManager at function scope for cleanup in finally block
+        let mcpManager: MCPManager | undefined;
 
         try {
             const systemPromptMessages = getSystemPromptWithProjectContext(SYSTEM_PROMPT, context, CodeSerializerType.SIMPLE);
@@ -364,18 +457,44 @@ export class UserConversationProcessor extends AgentOperation<UserConversationIn
 
             const toolCallRenderer = buildToolCallRenderer(inputs.conversationResponseCallback, aiConversationId);
 
-            // Assemble all tools with lifecycle callbacks for UI updates
-            const tools = buildTools(
+            // Initialize MCP Manager with user's configured servers
+            const userId = options.inferenceContext?.userId;
+
+            if (userId) {
+                try {
+                    const mcpConfigs = await this.loadUserMCPServers(env, userId, logger);
+
+                    if (mcpConfigs.length > 0) {
+                        mcpManager = new MCPManager();
+                        await mcpManager.initializeWithServers(mcpConfigs);
+
+                        logger.info('MCP Manager initialized with user servers', {
+                            userId,
+                            connectedServers: mcpManager.getStatus().connected,
+                            totalServers: mcpConfigs.length
+                        });
+                    }
+                } catch (error) {
+                    logger.error('Failed to initialize MCP Manager, proceeding without MCP tools', {
+                        userId,
+                        error: String(error)
+                    });
+                }
+            }
+
+            // Assemble all tools with lifecycle callbacks for UI updates (includes MCP tools if available)
+            const tools = (await buildToolsWithMCP(
                 agent,
                 logger,
                 toolCallRenderer,
-                (chunk: string) => inputs.conversationResponseCallback(chunk, aiConversationId, true)    
-            ).map(td => ({
+                (chunk: string) => inputs.conversationResponseCallback(chunk, aiConversationId, true),
+                mcpManager
+            )).map(td => ({
                 ...td,
                 onStart: (args: Record<string, unknown>) => toolCallRenderer({ name: td.function.name, status: 'start', args }),
-                onComplete: (args: Record<string, unknown>, result: unknown) => toolCallRenderer({ 
-                    name: td.function.name, 
-                    status: 'success', 
+                onComplete: (args: Record<string, unknown>, result: unknown) => toolCallRenderer({
+                    name: td.function.name,
+                    status: 'success',
                     args,
                     result: typeof result === 'string' ? result : JSON.stringify(result)
                 })
@@ -517,6 +636,16 @@ export class UserConversationProcessor extends AgentOperation<UserConversationIn
                     fullHistory: [...conversationState.fullHistory, ...fallbackMessages]
                 }
             };
+        } finally {
+            // Clean up MCP Manager connections to prevent resource leaks
+            if (mcpManager) {
+                try {
+                    await mcpManager.shutdown();
+                    logger.info('MCP Manager cleaned up successfully');
+                } catch (cleanupError) {
+                    logger.warn('Failed to cleanup MCP Manager', { error: String(cleanupError) });
+                }
+            }
         }
     }
 

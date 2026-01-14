@@ -85,6 +85,7 @@
 		"drizzle-orm": "^0.44.7",
 		"embla-carousel-react": "^8.6.0",
 		"esbuild": "^0.27.1",
+		"esbuild-wasm": "^0.27.2",
 		"eslint-import-resolver-typescript": "^4.4.4",
 		"eslint-plugin-import": "^2.32.0",
 		"fflate": "^0.8.2",
@@ -123,7 +124,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.17.0",
-		"@cloudflare/vitest-pool-workers": "^0.8.71",
+		"@cloudflare/vitest-pool-workers": "^0.11.1",
 		"@cloudflare/workers-types": "^4.20251205.0",
 		"@eslint/js": "^9.39.1",
 		"@tailwindcss/typography": "^0.5.19",
@@ -132,7 +133,8 @@
 		"@types/node": "^22.19.2",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
-		"@vitest/coverage-v8": "^4.0.15",
+		"@vitest/coverage-v8": "^3.2.4",
+		"@vitest/utils": "^3.2.4",
 		"drizzle-kit": "^0.31.8",
 		"eslint": "^9.39.1",
 		"eslint-plugin-react-hooks": "^5.2.0",
@@ -148,7 +150,7 @@
 		"typescript-eslint": "^8.49.0",
 		"vite": "npm:rolldown-vite@7.1.13",
 		"vitest": "^3.2.4",
-		"wrangler": "4.45.0"
+		"wrangler": "4.56.0"
 	},
 	"prettier": {
 		"singleQuote": true,

@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Plus,
   FolderOpen,
@@ -12,7 +13,8 @@ import {
   MoreHorizontal,
   Calendar,
   Clock,
-  Search
+  Search,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,6 +64,7 @@ interface Project {
 
 export default function ProjectsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -225,6 +228,11 @@ export default function ProjectsPage() {
     setIsDeleteDialogOpen(true);
   };
 
+  // Navigate to project details
+  const handleViewProject = (project: Project) => {
+    navigate(`/project/${project.id}`);
+  };
+
   const getStatusColor = (status: Project['status']) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
@@ -293,7 +301,11 @@ export default function ProjectsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProjects.map((project) => (
-                <Card key={project.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={project.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer hover:border-accent/50"
+                  onClick={() => handleViewProject(project)}
+                >
                   <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                     <div className="space-y-1 flex-1 min-w-0">
                       <CardTitle className="text-lg truncate">{project.name}</CardTitle>
@@ -302,18 +314,22 @@ export default function ProjectsPage() {
                       </Badge>
                     </div>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditDialog(project)}>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleViewProject(project); }}>
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View Apps
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(project); }}>
                           <Edit2 className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => openDeleteDialog(project)}
+                          onClick={(e) => { e.stopPropagation(); openDeleteDialog(project); }}
                           className="text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />

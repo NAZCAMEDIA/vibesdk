@@ -32,8 +32,7 @@ export function ChatModelSelector({ disabled = false, className }: ChatModelSele
 
   // Get short display name (remove provider prefix for compactness)
   const getShortDisplayName = (modelId: string): string => {
-    if (modelId === 'default') return 'Default';
-    // Remove provider prefix if present (e.g., "openai/gpt-4o" -> "gpt-4o")
+    // Remove provider prefix if present (e.g., "codeplan/glm-4.7" -> "glm-4.7")
     const parts = modelId.split('/');
     return parts.length > 1 ? parts.slice(1).join('/') : modelId;
   };
@@ -72,30 +71,6 @@ export function ChatModelSelector({ disabled = false, className }: ChatModelSele
 
         {/* Model List */}
         <div className="max-h-[280px] overflow-y-auto p-1">
-          {/* Default option */}
-          <div
-            onClick={() => {
-              setSelectedModel('default');
-              setOpen(false);
-              setSearch('');
-            }}
-            className={cn(
-              "flex cursor-pointer items-center justify-between rounded-md px-2 py-2 text-sm transition-colors hover:bg-accent/10",
-              selectedModel === 'default' && "bg-accent/10"
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <Check
-                className={cn(
-                  "h-4 w-4 text-accent",
-                  selectedModel === 'default' ? "opacity-100" : "opacity-0"
-                )}
-              />
-              <span className="font-medium">Default (Auto)</span>
-            </div>
-            <Badge variant="secondary" className="text-xs">Platform</Badge>
-          </div>
-
           {filteredModels.length === 0 && (
             <div className="py-6 text-center text-sm text-text-tertiary">
               No models found.

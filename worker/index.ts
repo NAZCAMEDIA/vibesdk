@@ -87,6 +87,12 @@ async function handleUserAppRequest(request: Request, env: Env): Promise<Respons
 	const appName = hostname.split('.')[0];
 	const dispatcher = env['DISPATCHER'];
 
+	// TypeScript doesn't narrow across function calls, so add explicit check
+	if (!dispatcher) {
+		logger.warn(`Dispatcher binding not available for: ${hostname}`);
+		return new Response('This application is not currently available.', { status: 404 });
+	}
+
 	try {
 		const worker = dispatcher.get(appName);
 		const dispatcherResponse = await worker.fetch(request);

@@ -99,11 +99,8 @@ export function getPlatformEnabledProviders(env: Env): string[] {
 	// Check for provider API keys in environment variables
 	// Using the same pattern as core.ts getApiKey function
 	const providerList = [
-		'anthropic',
-		'openai',
-		'google-ai-studio',
-		'cerebras',
-		'groq',
+		'codeplan',
+		'grok',
 	];
 
 	for (const provider of providerList) {
@@ -132,7 +129,6 @@ export function getPlatformEnabledProviders(env: Env): string[] {
  */
 export function getPlatformAvailableModels(env: Env): AIModels[] {
 	const platformEnabledProviders = getPlatformEnabledProviders(env);
-    console.log("Platform enabled providers: ", platformEnabledProviders);
 
 	// Filter models to only include those from providers with platform API keys
 	return Object.values(AIModels).filter((model) => {

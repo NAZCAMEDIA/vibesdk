@@ -279,6 +279,16 @@ export async function getConfigurationForModel(
                     baseURL: 'https://api.anthropic.com/v1/',
                     apiKey: env.ANTHROPIC_API_KEY,
                 };
+            case 'codeplan':
+                return {
+                    baseURL: 'https://open.bigmodel.cn/api/paas/v4/',
+                    apiKey: env.CODEPLAN_API_KEY,
+                };
+            case 'grok':
+                return {
+                    baseURL: 'https://api.x.ai/v1/',
+                    apiKey: env.GROK_API_KEY,
+                };
             default:
                 providerForcedOverride = modelConfig.provider as AIGatewayProviders;
                 break;

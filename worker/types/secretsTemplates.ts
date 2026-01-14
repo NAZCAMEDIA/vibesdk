@@ -160,6 +160,34 @@ export function getTemplatesData(): SecretTemplate[] {
 			required: false,
 			category: 'byok',
 		},
+		{
+			id: 'GROQ_API_KEY_BYOK',
+			displayName: 'Groq (BYOK)',
+			envVarName: 'GROQ_API_KEY_BYOK',
+			provider: 'groq',
+			icon: '⚡',
+			description:
+				'Use your Groq API key for ultra-fast inference via Cloudflare AI Gateway',
+			instructions: 'Go to Groq Console → API Keys → Create API Key',
+			placeholder: 'gsk_...',
+			validation: '^gsk_.{10,}$',
+			required: false,
+			category: 'byok',
+		},
+		{
+			id: 'CODEPLAN_API_KEY_BYOK',
+			displayName: 'CodePlan GLM4 (BYOK)',
+			envVarName: 'CODEPLAN_API_KEY_BYOK',
+			provider: 'codeplan',
+			icon: '🔮',
+			description:
+				'Use your CodePlan API key for GLM-4.7 model access',
+			instructions: 'Go to CodePlan Dashboard → API Settings → Generate Key',
+			placeholder: 'cp-... or any format',
+			validation: '^.{10,}$',
+			required: false,
+			category: 'byok',
+		},
 
 		// Development Tools
 		{

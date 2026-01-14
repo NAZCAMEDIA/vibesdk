@@ -110,56 +110,80 @@ const PLATFORM_AGENT_CONFIG: AgentConfig = {
 };
 
 //======================================================================================
-// Default Gemini-only config (most likely used in your deployment)
+// GLM 4.7 Only Config (CodePlan provider)
 //======================================================================================
-/* These are the default out-of-the box gemini-only models used when PLATFORM_MODEL_PROVIDERS is not set */
-const DEFAULT_AGENT_CONFIG: AgentConfig = {
+/* GLM-only configuration - uses CodePlan GLM 4.7 for all agents */
+const GLM_ONLY_CONFIG: AgentConfig = {
     ...COMMON_AGENT_CONFIGS,
+    templateSelection: {
+        name: AIModels.GLM_4_7,
+        max_tokens: 2000,
+        fallbackModel: AIModels.GLM_4_7,
+        temperature: 0.6,
+    },
     blueprint: {
-        name: AIModels.GEMINI_2_5_PRO,
+        name: AIModels.GLM_4_7_THINKING,
         reasoning_effort: 'medium',
         max_tokens: 64000,
-        fallbackModel: AIModels.GEMINI_2_5_FLASH,
+        fallbackModel: AIModels.GLM_4_7,
         temperature: 0.7,
     },
     projectSetup: {
-        name: AIModels.GEMINI_2_5_PRO,
-        ...SHARED_IMPLEMENTATION_CONFIG,
+        name: AIModels.GLM_4_7,
+        reasoning_effort: 'low',
+        max_tokens: 48000,
+        temperature: 0.2,
+        fallbackModel: AIModels.GLM_4_7,
     },
     phaseGeneration: {
-        name: AIModels.GEMINI_2_5_PRO,
-        ...SHARED_IMPLEMENTATION_CONFIG,
+        name: AIModels.GLM_4_7,
+        reasoning_effort: 'low',
+        max_tokens: 48000,
+        temperature: 0.2,
+        fallbackModel: AIModels.GLM_4_7,
     },
     firstPhaseImplementation: {
-        name: AIModels.GEMINI_2_5_PRO,
-        ...SHARED_IMPLEMENTATION_CONFIG,
+        name: AIModels.GLM_4_7,
+        reasoning_effort: 'low',
+        max_tokens: 48000,
+        temperature: 0.2,
+        fallbackModel: AIModels.GLM_4_7,
     },
     phaseImplementation: {
-        name: AIModels.GEMINI_2_5_PRO,
-        ...SHARED_IMPLEMENTATION_CONFIG,
+        name: AIModels.GLM_4_7,
+        reasoning_effort: 'low',
+        max_tokens: 48000,
+        temperature: 0.2,
+        fallbackModel: AIModels.GLM_4_7,
     },
     conversationalResponse: {
-        name: AIModels.GEMINI_2_5_FLASH,
+        name: AIModels.GLM_4_7,
         reasoning_effort: 'low',
         max_tokens: 4000,
-        temperature: 0,
-        fallbackModel: AIModels.GEMINI_2_5_PRO,
+        temperature: 0.5,
+        fallbackModel: AIModels.GLM_4_7,
     },
     deepDebugger: {
-        name: AIModels.GEMINI_2_5_PRO,
+        name: AIModels.GLM_4_7_THINKING,
         reasoning_effort: 'high',
         max_tokens: 8000,
         temperature: 0.5,
-        fallbackModel: AIModels.GEMINI_2_5_FLASH,
+        fallbackModel: AIModels.GLM_4_7,
     },
     fileRegeneration: {
-        name: AIModels.GEMINI_2_5_PRO,
+        name: AIModels.GLM_4_7,
         reasoning_effort: 'low',
         max_tokens: 32000,
         temperature: 0,
-        fallbackModel: AIModels.GEMINI_2_5_FLASH,
+        fallbackModel: AIModels.GLM_4_7,
     },
 };
+
+//======================================================================================
+// Default Gemini-only config (most likely used in your deployment)
+//======================================================================================
+/* These are the default out-of-the box gemini-only models used when PLATFORM_MODEL_PROVIDERS is not set */
+const DEFAULT_AGENT_CONFIG: AgentConfig = GLM_ONLY_CONFIG;
 
 export const AGENT_CONFIG: AgentConfig = env.PLATFORM_MODEL_PROVIDERS 
     ? PLATFORM_AGENT_CONFIG 

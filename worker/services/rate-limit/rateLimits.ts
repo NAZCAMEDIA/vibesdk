@@ -193,11 +193,19 @@ export class RateLimitService {
 		env: Env,
 		config: RateLimitSettings,
 		user: AuthUser,
-		request: Request
+		request: Request,
+		hasByokKeys: boolean = false
 	): Promise<void> {
 		if (!config[RateLimitType.APP_CREATION].enabled) {
 			return;
 		}
+
+		// Exclude BYOK users from app creation rate limits
+		if (hasByokKeys) {
+			this.logger.info('Bypassing app creation rate limit for BYOK user', { userId: user.id });
+			return;
+		}
+
 		const identifier = await this.getUserIdentifier(user);
 
 		const key = this.buildRateLimitKey(RateLimitType.APP_CREATION, identifier);

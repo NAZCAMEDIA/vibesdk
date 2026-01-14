@@ -274,6 +274,28 @@ const MODELS_MASTER = {
             contextSize: 262144, // 256K Context
         }
     },
+
+    // --- CodePlan/GLM Models ---
+    GLM_4_7: {
+        id: 'codeplan/glm-4.7',
+        config: {
+            name: 'GLM 4.7',
+            size: ModelSize.REGULAR,  // Changed from LARGE to allow in all agent contexts
+            provider: 'codeplan',
+            creditCost: 2, // Estimated
+            contextSize: 128000, // 128K Context
+        }
+    },
+    GLM_4_7_THINKING: {
+        id: 'codeplan/glm-4.7-thinking',
+        config: {
+            name: 'GLM 4.7 Thinking',
+            size: ModelSize.REGULAR,  // Changed from LARGE to allow in all agent contexts
+            provider: 'codeplan',
+            creditCost: 3, // Estimated
+            contextSize: 128000, // 128K Context
+        }
+    },
 } as const;
 
 /**

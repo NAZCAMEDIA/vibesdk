@@ -35,11 +35,15 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
   const [intendedUrl, setIntendedUrlState] = useState<string | undefined>();
   const { login, loginWithEmail, register, error, clearError, isAuthenticated } = useAuth();
 
-  const showAuthModal = useCallback((context?: string, onSuccess?: () => void, intendedUrl?: string) => {
-    setModalContext(context);
-    setPendingAction(onSuccess ? () => onSuccess : undefined);
-    setIntendedUrlState(intendedUrl);
-    setIsAuthModalOpen(true);
+  const showAuthModal = useCallback((context?: string, _onSuccess?: () => void, _intendedUrl?: string) => {
+    // BYPASS: Temporarily disable auth modal
+    console.log('[AUTH BYPASS] Auth modal suppressed:', context);
+    return;
+    // Original code:
+    // setModalContext(context);
+    // setPendingAction(onSuccess ? () => onSuccess : undefined);
+    // setIntendedUrlState(intendedUrl);
+    // setIsAuthModalOpen(true);
   }, []);
 
   const hideAuthModal = useCallback(() => {

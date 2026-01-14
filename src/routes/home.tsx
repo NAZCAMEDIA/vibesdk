@@ -18,6 +18,8 @@ import { ImageUploadButton } from '@/components/image-upload-button';
 import { DocumentUploadButton } from '@/components/document-upload-button';
 import { ImageAttachmentPreview } from '@/components/image-attachment-preview';
 import { DocumentAttachmentPreview } from '@/components/document-attachment-preview';
+import { ChatModelSelector } from '@/components/chat-model-selector';
+import { UIModeSelector } from '@/components/ui-mode-selector';
 import { SUPPORTED_IMAGE_MIME_TYPES } from '@/api-types';
 
 export default function Home() {
@@ -242,33 +244,36 @@ export default function Home() {
 								)}
 							</div>
 							<div className="flex items-center justify-between mt-4 pt-1">
-								{import.meta.env.VITE_AGENT_MODE_ENABLED ? (
-									<AgentModeToggle
-										value={agentMode}
-										onChange={setAgentMode}
-										className="flex-1"
-									/>
-								) : (
-									<div></div>
-								)}
+								{/* Left side: Model and UI Mode selectors */}
+								<div className="flex items-center gap-2">
+									<ChatModelSelector />
+									<UIModeSelector />
+									{import.meta.env.VITE_AGENT_MODE_ENABLED && (
+										<AgentModeToggle
+											value={agentMode}
+											onChange={setAgentMode}
+										/>
+									)}
+								</div>
 
+								{/* Right side: Attachment buttons and submit */}
 								<div className="flex items-center justify-end ml-4 gap-2">
-								<DocumentUploadButton
-									onFilesSelected={addDocuments}
-									disabled={isProcessing}
-								/>
-								<ImageUploadButton
-									onFilesSelected={addImages}
-									disabled={isProcessing}
-								/>
-								<button
-									type="submit"
-									disabled={!query.trim()}
-									className="bg-accent text-white p-1 rounded-md *:size-5 transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									<ArrowRight />
-								</button>
-							</div>
+									<DocumentUploadButton
+										onFilesSelected={addDocuments}
+										disabled={isProcessing}
+									/>
+									<ImageUploadButton
+										onFilesSelected={addImages}
+										disabled={isProcessing}
+									/>
+									<button
+										type="submit"
+										disabled={!query.trim()}
+										className="bg-accent text-white p-1 rounded-md *:size-5 transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<ArrowRight />
+									</button>
+								</div>
 							</div>
 						</form>
 					</motion.div>

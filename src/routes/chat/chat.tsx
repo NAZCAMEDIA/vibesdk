@@ -17,6 +17,7 @@ import { FileExplorer } from './components/file-explorer';
 import { UserMessage, AIMessage } from './components/messages';
 import { PhaseTimeline } from './components/phase-timeline';
 import { PreviewIframe } from './components/preview-iframe';
+import { LivePreviewSandbox } from './components/live-preview-sandbox';
 import { ViewModeSwitch } from './components/view-mode-switch';
 import { DebugPanel, type DebugMessage } from './components/debug-panel';
 import { DeploymentControls } from './components/deployment-controls';
@@ -41,6 +42,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { sendWebSocketMessage } from './utils/websocket-helpers';
 import { ChatModelSelector } from '@/components/chat-model-selector';
+import { UIModeSelector } from '@/components/ui-mode-selector';
 
 export default function Chat() {
 	const { chatId: urlChatId } = useParams();
@@ -165,7 +167,7 @@ export default function Chat() {
 	const navigate = useNavigate();
 
 	const [activeFilePath, setActiveFilePath] = useState<string>();
-	const [view, setView] = useState<'editor' | 'preview' | 'blueprint' | 'terminal'>(
+	const [view, setView] = useState<'editor' | 'preview' | 'blueprint' | 'terminal' | 'live'>(
 		'editor',
 	);
 
@@ -263,7 +265,7 @@ export default function Chat() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	const handleViewModeChange = useCallback((mode: 'preview' | 'editor' | 'blueprint') => {
+	const handleViewModeChange = useCallback((mode: 'preview' | 'editor' | 'blueprint' | 'live') => {
 		setView(mode);
 	}, []);
 
@@ -344,6 +346,44 @@ export default function Chat() {
 		return phaseTimeline.length > 0 && phaseTimeline[0].status === 'completed';
 	}, [phaseTimeline]);
 
+	// Check if there are files to preview (from files state OR from phaseTimeline phases)
+	const hasFilesToPreview = useMemo(() => {
+		// Check direct files array
+		if (files.length > 0) return true;
+		// Check files within each phase in phaseTimeline
+		return phaseTimeline.some(phase => phase.files && phase.files.length > 0);
+	}, [files, phaseTimeline]);
+
+	// Aggregate all files for live preview (from files state AND phaseTimeline phases)
+	const allFilesForPreview = useMemo((): FileType[] => {
+		// Start with files from useChat hook
+		const filesMap = new Map<string, FileType>();
+
+		// Add files from useChat state
+		files.forEach(file => {
+			filesMap.set(file.filePath, file);
+		});
+
+		// Add files from phaseTimeline phases (phase.files contains path, not filePath)
+		phaseTimeline.forEach(phase => {
+			if (phase.files) {
+				phase.files.forEach(phaseFile => {
+					// Only add if not already present (useChat files take priority)
+					if (!filesMap.has(phaseFile.path) && phaseFile.contents) {
+						filesMap.set(phaseFile.path, {
+							filePath: phaseFile.path,
+							fileContents: phaseFile.contents,
+							language: phaseFile.path.split('.').pop() || 'plaintext',
+							isGenerating: phaseFile.status === 'generating',
+						});
+					}
+				});
+			}
+		});
+
+		return Array.from(filesMap.values());
+	}, [files, phaseTimeline]);
+
 	const isGitHubExportReady = useMemo(() => {
 		return isPhase1Complete && !!urlChatId;
 	}, [isPhase1Complete, urlChatId]);
@@ -370,15 +410,24 @@ export default function Chat() {
 		prevMessagesLengthRef.current = messages.length;
 	}, [messages.length, scrollToBottom]);
 
+	// Auto-switch to live preview when code generation starts
 	useEffect(() => {
-		if (previewUrl && !hasSeenPreview.current && isPhase1Complete) {
+		if (hasFilesToPreview && !hasSeenPreview.current && view === 'editor') {
+			setView('live');
+			hasSeenPreview.current = true;
+		}
+	}, [hasFilesToPreview, view]);
+
+	// Switch from live to deployed preview when it becomes available
+	useEffect(() => {
+		if (previewUrl && isPhase1Complete && view === 'live') {
 			setView('preview');
 			setShowTooltip(true);
 			setTimeout(() => {
 				setShowTooltip(false);
 			}, 3000); // Auto-hide tooltip after 3 seconds
 		}
-	}, [previewUrl, isPhase1Complete]);
+	}, [previewUrl, isPhase1Complete, view]);
 
 	useEffect(() => {
 		if (chatId) {
@@ -744,6 +793,7 @@ export default function Chat() {
 						{/* Model selector and input row */}
 						<div className="flex items-end gap-2">
 							<ChatModelSelector disabled={isChatDisabled} />
+							<UIModeSelector disabled={isChatDisabled} />
 							<div className="relative flex-1">
 								<textarea
 							value={newMessage}
@@ -854,6 +904,7 @@ export default function Chat() {
 												view={view}
 												onChange={handleViewModeChange}
 												previewAvailable={!!previewUrl}
+												livePreviewAvailable={hasFilesToPreview}
 												showTooltip={showTooltip}
 											/>
 										</div>
@@ -961,6 +1012,49 @@ export default function Chat() {
 								</div>
 							)}
 
+							{view === 'live' && (
+								<div className="flex-1 flex flex-col bg-bg-3 rounded-xl shadow-md shadow-bg-2 overflow-hidden border border-border-primary">
+									<div className="grid grid-cols-3 px-2 h-10 border-b bg-bg-2">
+										<div className="flex items-center">
+											<ViewModeSwitch
+												view={view}
+												onChange={handleViewModeChange}
+												previewAvailable={!!previewUrl}
+												livePreviewAvailable={hasFilesToPreview}
+												showTooltip={showTooltip}
+											/>
+										</div>
+
+										<div className="flex items-center justify-center">
+											<div className="flex items-center gap-2">
+												<span className="text-sm font-mono text-text-50/70">
+													{blueprint?.title ?? 'Live Preview'}
+												</span>
+												{isGenerating && (
+													<span className="flex items-center gap-1 px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full">
+														<LoaderCircle className="size-3 animate-spin" />
+														Generating
+													</span>
+												)}
+											</div>
+										</div>
+
+										<div className="flex items-center justify-end gap-1.5">
+											<ModelConfigInfo
+												configs={modelConfigs}
+												onRequestConfigs={handleRequestConfigs}
+												loading={loadingConfigs}
+											/>
+										</div>
+									</div>
+									<LivePreviewSandbox
+										files={allFilesForPreview}
+										className="flex-1"
+										isGenerating={isGenerating}
+									/>
+								</div>
+							)}
+
 							{view === 'blueprint' && (
 								<div className="flex-1 flex flex-col bg-bg-3 rounded-xl shadow-md shadow-bg-2 overflow-hidden border border-border-primary">
 									{/* Toolbar */}
@@ -970,6 +1064,7 @@ export default function Chat() {
 												view={view}
 												onChange={handleViewModeChange}
 												previewAvailable={!!previewUrl}
+												livePreviewAvailable={hasFilesToPreview}
 												showTooltip={showTooltip}
 											/>
 										</div>
@@ -1087,6 +1182,7 @@ export default function Chat() {
 													previewAvailable={
 														!!previewUrl
 													}
+													livePreviewAvailable={hasFilesToPreview}
 													showTooltip={showTooltip}
 												/>
 											</div>
